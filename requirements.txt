@@ -1,0 +1,38 @@
+# Core Data Processing
+pandas==2.1.4
+numpy==1.26.2
+python-dateutil==2.8.2
+
+# Geospatial Libraries
+geopandas==0.14.1
+shapely==2.0.2
+pyproj==3.6.1
+fiona==1.9.5
+rtree==1.1.0
+
+# Raster/Elevation Data
+rasterio==1.3.9
+elevation==1.1.3
+
+# API & Web Requests
+requests==2.31.0
+urllib3==2.1.0
+
+# Data Storage
+pyarrow==14.0.1
+fastparquet==2024.2.0
+
+# Configuration Management
+python-dotenv==1.0.0
+pyyaml==6.0.1
+
+# Utilities
+tqdm==4.66.1
+click==8.1.7
+
+# Optional: Census API wrapper
+census==0.8.19
+
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0
