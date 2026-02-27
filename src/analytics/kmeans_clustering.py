@@ -7,11 +7,12 @@ geographic hotspot zones for operational prioritization.
 Model Design
 ------------
 - Features    : Latitude, Longitude (scaled)
-- k selection : k=5, aligned with San Rafael's 5-district planning structure.
-                Silhouette analysis confirms scores are stable from k=3 to k=7
-                (range 0.42–0.52); k=5 is selected as the operationally
-                meaningful choice over the mathematical optimum of k=2, which
-                is too coarse for actionable district-level planning.
+- k selection : k=4, aligned with San Rafael's 4-district planning structure.
+                Zones: Downtown Core, The Canal, Terra Linda, China Camp.
+                Silhouette at k=4 (0.4779) outperforms k=5 (0.4279) and
+                provides operationally meaningful geographic separation.
+                Mathematical optimum is k=2; k=4 is selected for actionable
+                district-level planning aligned with city administration.
 - Runs        : All records (overall hotspot map) + per-category clustering
                 for the top 5 service request categories
 - Preprocessing: Records with (lat=0, lon=0) sentinel values are excluded
@@ -88,7 +89,7 @@ OUT_ENRICHED_PERF = OUT_DIR / "kmeans_cluster_enriched.csv"
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-K             = 5          # clusters — matches SR 5-district planning structure
+K             = 4          # clusters — matches SR 4-district planning structure
 K_RANGE       = range(2, 12)
 RANDOM_STATE  = 42
 N_INIT        = 10
@@ -151,7 +152,7 @@ def elbow_analysis(coords_scaled: np.ndarray,
 
     elbow_df = pd.DataFrame(records)
     best_sil_k = elbow_df.loc[elbow_df["silhouette"].idxmax(), "k"]
-    print(f"[KM] Best k by silhouette: {best_sil_k}  (selected k={K} for operational alignment)")
+    print(f"[KM] Best k by silhouette: {best_sil_k}  (selected k={K}: Downtown Core, The Canal, Terra Linda, China Camp)")
     return elbow_df
 
 
@@ -467,8 +468,9 @@ def save_outputs(df_labeled:   pd.DataFrame,
         "k":                K,
         "silhouette_score": round(sil_score, 4),
         "n_records":        len(df_labeled),
-        "k_selection":      "Operational alignment (5 SR districts); "
-                            "silhouette optimum k=2, stable k=3-7 (0.42-0.52)",
+        "k_selection":      "Operational alignment (4 SR districts: Downtown Core, "
+                            "The Canal, Terra Linda, China Camp); "
+                            "silhouette k=4=0.4779 vs k=5=0.4279",
     }])
     metrics_df.to_csv(OUT_METRICS, index=False)
     print(f"[KM] Metrics saved               → {OUT_METRICS}")

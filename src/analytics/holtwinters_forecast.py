@@ -303,7 +303,11 @@ def save_outputs(forecast_df: pd.DataFrame,
                  metrics: dict,
                  train: pd.Series,
                  test: pd.Series,
-                 test_preds: pd.Series) -> None:
+                 test_preds: pd.Series,
+                 model_tuple=None,
+                 series=None,
+                 yoy_corr: float = float("nan"),
+                 cv: float = float("nan")) -> None:
     """Persist forecast, historical series, and metrics to processed/ folder."""
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -331,6 +335,24 @@ def save_outputs(forecast_df: pd.DataFrame,
     metrics_df["test_weeks"]      = TEST_WEEKS
     metrics_df["forecast_weeks"]  = FORECAST_WEEKS
     metrics_df["train_start"]     = TRAIN_START
+    # Series diagnostics
+    metrics_df["yoy_correlation"] = round(yoy_corr, 4)
+    metrics_df["series_cv"]       = round(cv, 4)
+    if series is not None:
+        metrics_df["n_weeks_total"] = len(series)
+        metrics_df["series_mean"]   = round(float(series.mean()), 2)
+        metrics_df["date_start"]    = str(series.index.min().date())
+        metrics_df["date_end"]      = str(series.index.max().date())
+    # Model parameters
+    if model_tuple is not None:
+        m, label = model_tuple
+        params = m.params
+        metrics_df["alpha"] = round(float(params.get("smoothing_level", float("nan"))), 4)
+        metrics_df["beta"]  = round(float(params.get("smoothing_trend",    float("nan"))), 4)
+        metrics_df["gamma"] = round(float(params.get("smoothing_seasonal", float("nan"))), 4)
+        metrics_df["has_seasonal"] = "smoothing_seasonal" in params
+        metrics_df["is_damped"]    = getattr(m.model, "damped_trend", False)
+        metrics_df["aic"]          = round(float(m.aic), 2)
     metrics_df.to_csv(OUT_METRICS, index=False)
     print(f"[HW] Metrics saved         → {OUT_METRICS}")
 
@@ -350,7 +372,12 @@ def run(data_path: Path = CLEAN_311) -> tuple[pd.DataFrame, dict]:
     model_tuple         = fit_model(train)
     metrics, test_preds = evaluate(model_tuple, test)
     forecast_df         = forecast_future(model_tuple, series)
-    save_outputs(forecast_df, metrics, train, test, test_preds)
+    # Compute series-level diagnostics for the metrics file
+    yoy_corr = float(series.autocorr(lag=52)) if len(series) >= 104 else float("nan")
+    cv       = float(series.std() / series.mean()) if series.mean() != 0 else float("nan")
+    save_outputs(forecast_df, metrics, train, test, test_preds,
+                 model_tuple=model_tuple, series=series,
+                 yoy_corr=yoy_corr, cv=cv)
 
     print("\n✓ Holt-Winters pipeline complete.")
     return forecast_df, metrics
