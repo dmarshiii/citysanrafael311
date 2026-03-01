@@ -1,0 +1,5 @@
+cluster,model,is_proportional,prop_share,n_train_weeks,mean_weekly,zero_week_pct,mae,rmse,mape,fc_13wk_total
+1,Add only,False,,148,37.99,0.0,9.33,11.12,35.5,475.3
+2,Add only,False,,148,13.42,0.6,5.67,6.5,52.5,239.6
+3,Add only,False,,148,9.84,0.6,5.2,5.62,200.5,68.9
+4,Proportional (Add only),True,0.058,148,3.8,5.0,2.0,2.49,95.3,46.8

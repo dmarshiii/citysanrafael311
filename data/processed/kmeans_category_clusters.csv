@@ -1,0 +1,16 @@
+category,cat_cluster,lat_centroid,lon_centroid,cluster_size
+Illegal Dumping,1,37.964607,-122.506061,772
+Illegal Dumping,2,38.006024,-122.540171,288
+Illegal Dumping,3,37.973164,-122.528878,1794
+Pothole/Road Condition,1,37.97433,-122.528856,811
+Pothole/Road Condition,2,38.00901,-122.546609,201
+Pothole/Road Condition,3,37.969797,-122.493315,200
+Stormwater Drainage,1,37.972701,-122.528106,773
+Stormwater Drainage,2,38.00828,-122.549019,147
+Stormwater Drainage,3,37.979287,-122.488156,157
+Trees,1,38.010862,-122.551983,166
+Trees,2,37.979044,-122.487805,115
+Trees,3,37.973426,-122.530704,640
+Parks and Playgrounds,1,37.969429,-122.53335,499
+Parks and Playgrounds,2,38.005704,-122.548943,195
+Parks and Playgrounds,3,37.974978,-122.487073,206

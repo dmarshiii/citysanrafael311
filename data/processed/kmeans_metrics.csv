@@ -1,0 +1,2 @@
+model,k,silhouette_score,n_records,k_selection
+K-Means,4,0.4807,11698,"Operational alignment (4 SR districts: Downtown Core, The Canal, Terra Linda, China Camp); silhouette k=4=0.4779 vs k=5=0.4279"

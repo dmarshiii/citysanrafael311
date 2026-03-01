@@ -29,13 +29,22 @@ wheels/
 # Environment variables
 .env
 
-# Data files (too large for git)
+# Data files
+# ── Raw data: excluded (too large, fetched via API or downloaded manually) ──
 data/raw/*
-data/interim/*
-data/processed/*
 !data/raw/.gitkeep
+
+# ── Interim data: excluded (transient, reproducible) ────────────────────────
+data/interim/*
 !data/interim/.gitkeep
+
+# ── Processed data: exclude large source files, track pipeline outputs ───────
+data/processed/*
 !data/processed/.gitkeep
+
+# Processed CSVs — tracked so Streamlit Community Cloud can read them
+!data/processed/*.csv
+!data/processed/*.parquet
 
 # OS
 .DS_Store

@@ -1,0 +1,21 @@
+cluster,category_short,n_closed,median_days,mean_days,pct_over_30d,city_median_days,days_vs_city_median,gap_flag
+1,Illegal Dumping,1763,4.95,10.89,5.45,5.07,-0.12,
+1,Parks and Playgrounds,457,13.89,97.73,40.04,14.86,-0.97,
+1,Pothole/Road Condition,695,5.64,33.32,17.99,5.375,0.26,
+1,Stormwater Drainage,634,2.13,27.66,15.93,2.05,0.08,
+1,Trees,580,4.03,28.83,14.48,5.05,-1.02,
+2,Illegal Dumping,780,5.98,13.24,6.03,5.07,0.91,
+2,Parks and Playgrounds,140,14.52,101.3,37.14,14.86,-0.34,
+2,Pothole/Road Condition,212,6.34,35.59,16.51,5.375,0.96,
+2,Stormwater Drainage,172,2.0,16.11,15.7,2.05,-0.05,
+2,Trees,105,5.89,32.82,20.0,5.05,0.84,
+3,Illegal Dumping,261,4.54,12.8,6.9,5.07,-0.53,
+3,Parks and Playgrounds,191,19.14,103.21,42.93,14.86,4.28,
+3,Pothole/Road Condition,199,3.72,41.46,16.58,5.375,-1.65,✓ FAST
+3,Stormwater Drainage,140,1.38,38.82,11.43,2.05,-0.67,✓ FAST
+3,Trees,168,7.94,45.84,26.19,5.05,2.89,⚠ SLOW
+4,Illegal Dumping,16,6.04,9.22,6.25,5.07,0.97,
+4,Parks and Playgrounds,101,14.25,86.18,37.62,14.86,-0.61,
+4,Pothole/Road Condition,66,12.08,87.05,40.91,5.375,6.7,⚠ SLOW
+4,Stormwater Drainage,88,2.66,29.24,17.05,2.05,0.61,
+4,Trees,62,6.96,43.99,24.19,5.05,1.91,

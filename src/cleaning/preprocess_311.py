@@ -5,16 +5,27 @@ Cleans and enriches the San Rafael 311 service request data, producing a
 feature-ready DataFrame for time-series forecasting, geospatial clustering,
 and NLP text classification.
 
+Data source
+-----------
+Primary: ArcGIS FeatureServer (SeeClickFix production export)
+  Endpoint : ARCGIS_ENDPOINT constant below
+  Auth     : Public — no API key required
+  Paging   : 2,000 records per request (server maxRecordCount)
+  Dates    : Returned as Unix millisecond timestamps; converted to datetime
+  Fallback : If API is unreachable, falls back to local CSV at RAW_311
+
 Preprocessing steps
 -------------------
-1.  Parse all datetime columns; handle the sentinel value 1/1/1900 (= not closed).
-2.  Derive calendar features: date, year, month, week, day_of_week, hour.
-3.  Compute resolution_days (days from open to close) where applicable.
-4.  Shorten category labels (strip Spanish translation suffix).
-5.  Encode status as binary: closed=1, open=0.
-6.  Drop rows missing lat/long (critical for spatial analysis).
-7.  Flag rows with usable free-text descriptions.
-8.  Output a clean CSV and Parquet ready for merging with NOAA data.
+1.  Fetch all records from ArcGIS FeatureServer via paginated REST queries.
+2.  Convert Unix ms timestamps to datetime; handle sentinel -2208988800000
+    (= 1900-01-01, meaning request not yet closed).
+3.  Derive calendar features: date, year, month, week, day_of_week, hour.
+4.  Compute resolution_days (days from open to close) where applicable.
+5.  Shorten category labels (strip Spanish translation suffix).
+6.  Encode status as binary: closed=1, open=0.
+7.  Drop rows missing lat/long (critical for spatial analysis).
+8.  Flag rows with usable free-text descriptions.
+9.  Output a clean CSV and Parquet ready for merging with NOAA data.
 
 Output columns (key)
 --------------------
@@ -26,6 +37,8 @@ Output columns (key)
 """
 
 import re
+import time
+import requests
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -40,8 +53,18 @@ OUT_DIR     = ROOT / "data" / "processed"
 OUT_CSV     = OUT_DIR / "san_rafael_311_clean.csv"
 OUT_PARQUET = OUT_DIR / "san_rafael_311_clean.parquet"
 
+# ArcGIS FeatureServer endpoint — San Rafael SeeClickFix 311 data (public, no auth)
+ARCGIS_ENDPOINT = (
+    "https://services5.arcgis.com/sruoiBDPu8SihcGN/arcgis/rest/services"
+    "/seeclickfix_production_public_gdb/FeatureServer/0/query"
+)
+ARCGIS_PAGE_SIZE = 2000   # server maxRecordCount
+
 # Sentinel used by the source system for "not yet closed"
-SENTINEL_DATE = pd.Timestamp("1900-01-01")
+# CSV source  : date string parsed to 1900-01-01
+# API source  : Unix ms timestamp -2208988800000 (= 1900-01-01 00:00:00 UTC)
+SENTINEL_DATE    = pd.Timestamp("1900-01-01")
+SENTINEL_DATE_MS = -2208988800000
 
 
 # ---------------------------------------------------------------------------
@@ -68,7 +91,72 @@ def _parse_dt(series: pd.Series) -> pd.Series:
 # Main pipeline
 # ---------------------------------------------------------------------------
 
+def fetch_from_api(endpoint: str = ARCGIS_ENDPOINT,
+                   page_size: int = ARCGIS_PAGE_SIZE) -> pd.DataFrame:
+    """
+    Fetch all 311 records from the ArcGIS FeatureServer via paginated REST queries.
+
+    ArcGIS returns dates as Unix millisecond timestamps. This function leaves
+    them as raw integers; clean() handles the conversion so the pipeline
+    remains agnostic to the source.
+
+    Paging strategy: increment resultOffset by page_size until the response
+    no longer sets exceededTransferLimit=true, or returns fewer records than
+    page_size.
+    """
+    params = {
+        "outFields": "*",
+        "where":     "1=1",
+        "f":         "json",
+        "orderByFields": "OBJECTID",
+        "resultRecordCount": page_size,
+        "resultOffset": 0,
+    }
+
+    all_records = []
+    page = 0
+
+    while True:
+        params["resultOffset"] = page * page_size
+        try:
+            resp = requests.get(endpoint, params=params, timeout=30)
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as e:
+            raise RuntimeError(f"[311] ArcGIS API request failed (page {page}): {e}")
+
+        if "error" in data:
+            raise RuntimeError(f"[311] ArcGIS API error: {data['error']}")
+
+        features = data.get("features", [])
+        if not features:
+            break
+
+        records = [f["attributes"] for f in features]
+        all_records.extend(records)
+
+        n_fetched = len(all_records)
+        exceeded  = data.get("exceededTransferLimit", False)
+        print(f"[311] Page {page+1}: +{len(records):,} records  "
+              f"(total so far: {n_fetched:,})"
+              + ("  [more pages...]" if exceeded else "  [complete]"))
+
+        if not exceeded or len(records) < page_size:
+            break
+
+        page += 1
+        time.sleep(0.1)   # polite pacing — avoid hammering the server
+
+    df = pd.DataFrame(all_records)
+    # Normalise DISTRICT column name (API returns uppercase)
+    if "DISTRICT" in df.columns and "district" not in df.columns:
+        df = df.rename(columns={"DISTRICT": "district"})
+    print(f"[311] API fetch complete: {len(df):,} total records")
+    return df
+
+
 def load_raw(path: Path = RAW_311) -> pd.DataFrame:
+    """Load raw 311 data from local CSV (fallback / offline use)."""
     df = pd.read_csv(path, low_memory=False)
     print(f"[311] Loaded {len(df):,} raw records from {path.name}")
     return df
@@ -90,9 +178,15 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
     # ------------------------------------------------------------------ #
     # 2. Parse datetime columns                                            #
     # ------------------------------------------------------------------ #
-    df["requested_datetime"] = _parse_dt(df["requested_datetime"])
-    df["updated_datetime"]   = _parse_dt(df["updated_datetime"])
-    df["date_closed"]        = _parse_dt(df["date_closed"])
+    # Handle both sources:
+    #   CSV source : string datetimes  → pd.to_datetime() parses directly
+    #   API source : Unix ms integers  → pd.to_datetime(..., unit="ms")
+    for col in ["requested_datetime", "updated_datetime", "date_closed"]:
+        if pd.api.types.is_numeric_dtype(df[col]):
+            # API source: Unix milliseconds; sentinel -2208988800000 → 1900-01-01
+            df[col] = pd.to_datetime(df[col], unit="ms", errors="coerce")
+        else:
+            df[col] = _parse_dt(df[col])
 
     # Treat sentinel 1900-01-01 as NaT (request not yet closed)
     df.loc[df["date_closed"].dt.year == 1900, "date_closed"] = pd.NaT
@@ -188,9 +282,29 @@ def save(df: pd.DataFrame,
     print(f"[311] Saved → {parquet_path}")
 
 
-def run(raw_path: Path = RAW_311) -> pd.DataFrame:
-    """Full preprocessing pipeline. Returns the cleaned DataFrame."""
-    raw   = load_raw(raw_path)
+def run(raw_path: Path = RAW_311,
+        use_api: bool = True) -> pd.DataFrame:
+    """
+    Full preprocessing pipeline. Returns the cleaned DataFrame.
+
+    Parameters
+    ----------
+    raw_path : Path
+        Path to local CSV fallback (used when use_api=False or API unreachable).
+    use_api  : bool
+        If True (default), fetch live data from the ArcGIS FeatureServer.
+        If False, load from local CSV at raw_path.
+    """
+    if use_api:
+        try:
+            raw = fetch_from_api()
+        except Exception as e:
+            print(f"[311] API fetch failed: {e}")
+            print(f"[311] Falling back to local CSV: {raw_path}")
+            raw = load_raw(raw_path)
+    else:
+        raw = load_raw(raw_path)
+
     clean_df = clean(raw)
     save(clean_df)
     return clean_df
@@ -202,10 +316,23 @@ def run(raw_path: Path = RAW_311) -> pd.DataFrame:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Preprocess San Rafael 311 data.")
+    parser = argparse.ArgumentParser(
+        description="Preprocess San Rafael 311 data.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  python preprocess_311.py                  # fetch from ArcGIS API\n"
+            "  python preprocess_311.py --no-api         # use local CSV only\n"
+            "  python preprocess_311.py --no-api --input path/to/file.csv"
+        )
+    )
     parser.add_argument(
         "--input", type=Path, default=RAW_311,
-        help="Path to raw san_rafael_311.csv"
+        help="Path to local CSV fallback (default: data/raw/311_requests/san_rafael_311.csv)"
+    )
+    parser.add_argument(
+        "--no-api", dest="no_api", action="store_true",
+        help="Skip API fetch and use local CSV only"
     )
     args = parser.parse_args()
-    run(raw_path=args.input)
+    run(raw_path=args.input, use_api=not args.no_api)

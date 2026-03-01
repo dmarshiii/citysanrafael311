@@ -1,0 +1,2 @@
+model,MAE,RMSE,MAPE,seasonal_period,test_weeks,forecast_weeks,train_start,yoy_correlation,series_cv,n_weeks_total,series_mean,date_start,date_end,alpha,beta,gamma,has_seasonal,is_damped,aic
+Damped Add,9.63,12.73,19.18,52,13,13,2023-01-01,-0.1858,0.3012,161,66.12,2023-01-02,2026-01-26,0.1333,0.0,,True,True,861.47

@@ -1,0 +1,2 @@
+model,n_classes,n_train,n_test,accuracy,f1_macro,f1_weighted,cv_f1_weighted_mean,cv_f1_weighted_std,tfidf_max_features,tfidf_ngram_range,lr_C,min_class_size
+TF-IDF + Logistic Regression,20,8928,2233,0.7349,0.5426,0.7101,0.6984,0.0095,10000,"(1, 2)",1.0,50

@@ -1,0 +1,5 @@
+cluster,fc_13wk_total,mean_weekly_fc,mean_workload_share,complexity_weight,backlog_rate,is_proportional,recommended_fte_share
+1,475.3,36.6,0.557,0.872,0.217,False,55.7
+2,239.6,18.4,0.256,0.806,0.2,False,25.6
+3,68.9,5.3,0.099,1.044,0.248,False,9.9
+4,46.8,3.6,0.088,1.277,0.327,True,8.8
