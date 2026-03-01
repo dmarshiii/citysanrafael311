@@ -38,13 +38,39 @@ data/raw/*
 data/interim/*
 !data/interim/.gitkeep
 
-# ── Processed data: exclude large source files, track pipeline outputs ───────
+# ── Processed data: exclude large intermediate files, track dashboard outputs ─
 data/processed/*
 !data/processed/.gitkeep
 
-# Processed CSVs — tracked so Streamlit Community Cloud can read them
-!data/processed/*.csv
-!data/processed/*.parquet
+# Large intermediate files — reproducible by pipeline, not read by app.py
+data/processed/san_rafael_311_clean.csv
+data/processed/san_rafael_311_clean.parquet
+data/processed/san_rafael_311_enriched.csv
+data/processed/merged_311_noaa.csv
+data/processed/merged_311_noaa.parquet
+data/processed/nlp_predictions.csv
+
+# Dashboard output files — tracked so Streamlit Community Cloud can read them
+!data/processed/forecast_cluster_metrics.csv
+!data/processed/forecast_cluster_staffing.csv
+!data/processed/forecast_cluster_summary.csv
+!data/processed/forecast_cluster_weekly.csv
+!data/processed/forecast_historical.csv
+!data/processed/forecast_holtwinters.csv
+!data/processed/forecast_metrics.csv
+!data/processed/kmeans_category_clusters.csv
+!data/processed/kmeans_category_performance.csv
+!data/processed/kmeans_cluster_enriched.csv
+!data/processed/kmeans_cluster_performance.csv
+!data/processed/kmeans_clusters.csv
+!data/processed/kmeans_elbow.csv
+!data/processed/kmeans_metrics.csv
+!data/processed/nlp_classification_report.csv
+!data/processed/nlp_confusion_matrix.csv
+!data/processed/nlp_metrics.csv
+!data/processed/nlp_top_terms.csv
+!data/processed/noaa_daily_clean.csv
+!data/processed/noaa_daily_clean.parquet
 
 # OS
 .DS_Store
